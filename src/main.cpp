@@ -1,50 +1,35 @@
-/*
- * Rui Santos 
- * Complete Project Details https://randomnerdtutorials.com
- */
-
 #include <MFRC522.h> // for the RFID
 #include <SPI.h>     // for the RFID and SD card module
 #include <SD.h>      // for the SD card
 #include <RTClib.h>  // for the RTC
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
-// define pins for RFID
 #define CS_RFID 10
 #define RST_RFID 9
-// define select pin for SD card module
 #define CS_SD 4
 
-// Create a file to store the data
+LiquidCrystal_I2C lcd(0x27, 20, 4);
 File myFile;
-
-// Instance of the class for RFID
 MFRC522 rfid(CS_RFID, RST_RFID);
-
-// Variable to hold the tag's UID
 String uidString;
-
-// Instance of the class for RTC
 RTC_DS1307 rtc;
 
 const int buzzer = 5;
+const int motorpanas = 6;
+const int motordingin = 7;
+const int sensorpanas = 2;
+const int sensordingin = 3;
+const int potensio = A0;
 
 void setup()
 {
-
-  // Set LEDs and buzzer as outputs
   pinMode(buzzer, OUTPUT);
-
-  // Init Serial port
   Serial.begin(9600);
   while (!Serial)
     ; // for Leonardo/Micro/Zero
-
-  // Init SPI bus
   SPI.begin();
-  // Init MFRC522
   rfid.PCD_Init();
-
-  // Setup for the SD card
   Serial.print("Initializing SD card...");
   if (!SD.begin(CS_SD))
   {
@@ -52,8 +37,6 @@ void setup()
     return;
   }
   Serial.println("initialization done.");
-
-  // Setup for the RTC
   if (!rtc.begin())
   {
     Serial.println("Couldn't find RTC");
@@ -62,7 +45,6 @@ void setup()
   }
   else
   {
-    // following line sets the RTC to the date & time this sketch was compiled
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   }
   if (!rtc.isrunning())
@@ -78,24 +60,16 @@ void readRFID()
   uidString = String(rfid.uid.uidByte[0]) + " " + String(rfid.uid.uidByte[1]) + " " +
               String(rfid.uid.uidByte[2]) + " " + String(rfid.uid.uidByte[3]);
   Serial.println(uidString);
-
-  // Sound the buzzer when a card is read
   tone(buzzer, 2000);
   delay(100);
   noTone(buzzer);
-
   delay(100);
 }
 
 void logCard()
 {
-  // Enables SD card chip select pin
   digitalWrite(CS_SD, LOW);
-
-  // Open file
   myFile = SD.open("DATA.txt", FILE_WRITE);
-
-  // If the file opened ok, write to it
   if (myFile)
   {
     Serial.println("File opened ok");
