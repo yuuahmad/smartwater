@@ -26,25 +26,12 @@ String uidString;
 // Instance of the class for RTC
 RTC_DS1307 rtc;
 
-// Define check in time
-const int checkInHour = 9;
-const int checkInMinute = 5;
-
-//Variable to hold user check in
-int userCheckInHour;
-int userCheckInMinute;
-
-// Pins for LEDs and buzzer
-const int redLED = 6;
-const int greenLED = 7;
 const int buzzer = 5;
 
 void setup()
 {
 
   // Set LEDs and buzzer as outputs
-  pinMode(redLED, OUTPUT);
-  pinMode(greenLED, OUTPUT);
   pinMode(buzzer, OUTPUT);
 
   // Init Serial port
@@ -139,10 +126,6 @@ void logCard()
     Serial.println(now.minute(), DEC);
     Serial.println("sucessfully written on SD card");
     myFile.close();
-
-    // Save check in time;
-    userCheckInHour = now.hour();
-    userCheckInMinute = now.minute();
   }
   else
   {
@@ -152,24 +135,6 @@ void logCard()
   digitalWrite(CS_SD, HIGH);
 }
 
-void verifyCheckIn()
-{
-  if ((userCheckInHour < checkInHour) || ((userCheckInHour == checkInHour) && (userCheckInMinute <= checkInMinute)))
-  {
-    digitalWrite(greenLED, HIGH);
-    delay(2000);
-    digitalWrite(greenLED, LOW);
-    Serial.println("You're welcome!");
-  }
-  else
-  {
-    digitalWrite(redLED, HIGH);
-    delay(2000);
-    digitalWrite(redLED, LOW);
-    Serial.println("You are late...");
-  }
-}
-
 void loop()
 {
   //look for new cards
@@ -177,7 +142,6 @@ void loop()
   {
     readRFID();
     logCard();
-    verifyCheckIn();
   }
   delay(10);
 }
