@@ -4,27 +4,29 @@
 #include <RTClib.h>  // for the RTC
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include <Servo.h>
 
 #define CS_RFID 10
 #define RST_RFID 9
 #define CS_SD 4
 
-LiquidCrystal_I2C lcd(0x27, 20, 4);
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 File myFile;
 MFRC522 rfid(CS_RFID, RST_RFID);
 String uidString;
 RTC_DS1307 rtc;
 
 const int buzzer = 5;
-const int motorpanas = 6;
-const int motordingin = 7;
-const int sensorpanas = 2;
-const int sensordingin = 3;
+const int sensorflow = 3;
 const int potensio = A0;
+
+const int pompa = 6;
 
 void setup()
 {
   pinMode(buzzer, OUTPUT);
+  pinMode(sensorflow, INPUT);
+
   Serial.begin(9600);
   while (!Serial)
     ; // for Leonardo/Micro/Zero
@@ -51,6 +53,13 @@ void setup()
   {
     Serial.println("RTC is NOT running!");
   }
+  // inisialisasi lcd disini
+  lcd.init(); // initialize the lcd
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("smart water");
+  lcd.setCursor(0, 1);
+  lcd.print("start");
 }
 
 void readRFID()
@@ -60,6 +69,13 @@ void readRFID()
   uidString = String(rfid.uid.uidByte[0]) + " " + String(rfid.uid.uidByte[1]) + " " +
               String(rfid.uid.uidByte[2]) + " " + String(rfid.uid.uidByte[3]);
   Serial.println(uidString);
+
+  lcd.setCursor(0, 0);
+  lcd.print("tag UID :             ");
+  lcd.setCursor(0, 1);
+  lcd.print(uidString);
+  lcd.print("        ");
+
   tone(buzzer, 2000);
   delay(100);
   noTone(buzzer);
@@ -68,6 +84,8 @@ void readRFID()
 
 void logCard()
 {
+  int nilaiair = analogRead(potensio);
+  nilaiair = map(nilaiair, 1024, 0, 0, 5000);
   digitalWrite(CS_SD, LOW);
   myFile = SD.open("DATA.txt", FILE_WRITE);
   if (myFile)
@@ -86,7 +104,9 @@ void logCard()
     myFile.print(',');
     myFile.print(now.hour(), DEC);
     myFile.print(':');
-    myFile.println(now.minute(), DEC);
+    myFile.print(now.minute(), DEC);
+    myFile.print(',');
+    myFile.println(nilaiair);
 
     // Print time on Serial monitor
     Serial.print(now.year(), DEC);
@@ -111,11 +131,33 @@ void logCard()
 
 void loop()
 {
+  int volumeair = analogRead(potensio);
+  volumeair = map(volumeair, 1024, 0, 5000, 0);
+
+  lcd.setCursor(0, 0);
+  lcd.print("volume air :          ");
+  lcd.setCursor(0, 1);
+  lcd.print(volumeair);
+  lcd.print("                ");
+
   //look for new cards
   if (rfid.PICC_IsNewCardPresent())
   {
     readRFID();
     logCard();
+    delay(1000);
+    if (digitalRead(sensorflow) == HIGH)
+    {
+      digitalWrite(pompa, HIGH);
+      lcd.setCursor(0, 1);
+      lcd.print("air panas        ");
+      delay(volumeair);
+    }
+    else
+    {
+      digitalWrite(pompa, LOW);
+    }
   }
-  delay(10);
+  digitalWrite(pompa,LOW);
+  delay(200);
 }
